@@ -1,0 +1,13 @@
+# .gitignore
+#
+# Tells git to ignore stuff
+#
+
+# Editor backup files
+*.swp
+*.swo
+*~
+
+# Compiled files
+*.pyc
+

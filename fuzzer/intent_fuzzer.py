@@ -1,6 +1,6 @@
-from drozer.modules import common, Module
+from drozer.modules import Module
 
-class createSniffer(Module):
+class IntentFuzzer (Module):
 	name=""
 	description=""
 	examples=""
