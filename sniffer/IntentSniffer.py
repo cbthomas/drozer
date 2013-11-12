@@ -46,7 +46,7 @@ class createSniffer(Module, common.PackageManager, common.Assets):
 				
 				for word in line_split:
 					
-					if (("name=" in word) or ("mimeType=" in word) or ("pathPrefix=" in word) or ("scheme=" in word) or ("host=" in word) or ("path=" in word) or ("pathPattern" in word) or ("priority=" in word) or ("value=" in word)):
+					if (("name=" in word) or ("mimeType=" in word) or ("pathPrefix=" in word) or ("scheme=" in word) or ("host=" in word) or ("path=" in word) or ("pathPattern" in word) or ("priority=" in word) or ("value=" in word) or ("port=" in word) or ("permission=" in word)):
 						outputfile.write("android:" + word + " ")
 						
 					else:
