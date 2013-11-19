@@ -1,5 +1,7 @@
 from drozer.modules import Module,common
 
+import os
+
 class createSniffer(Module, common.PackageManager, common.Assets):
 	name=""
 	description=""
@@ -11,15 +13,22 @@ class createSniffer(Module, common.PackageManager, common.Assets):
 	
 	def execute(self, arguments):
 		global outputfile 
-		outputfile = open("/home/josh-cmu/mobile-sec/drozer/sniffer/intentFilters.txt","w")
-		self.stdout.write("Hello from Drozer\n")	
+		os.system("mkdir ~/Desktop/snifferApp")
+		os.system("cp ~/mobile-sec/drozer/sniffer/template -r * ~/Desktop/snifferApp/")
+		outputfile = open("/home/josh-cmu/Desktop/snifferApp/AndroidManifest.xml","a")
+		self.stdout.write("Hello from Drozer\n")
 		for package in self.packageManager().getPackages():
 			packageNameString = package.applicationInfo.packageName
 			self.stdout.write("Package: %s\n" % package.applicationInfo.packageName)
 			
 			if(package.applicationInfo.packageName != "com.android.musicfx"):
 				self.parse(self.getAndroidManifest(packageNameString))
+		outputfile.write("</receiver> \n </application> \n </manifest>")
 		outputfile.close()
+		os.system("android update project --target 2 --path /home/josh-cmu/Desktop/snifferApp --name ContentSniffer")
+		os.chdir("/home/josh-cmu/Desktop/snifferApp")
+		os.system("ant debug install")
+		os.system("rm -r /home/josh-cmu/Desktop/snifferApp")
 		
 	def parse(self, manifest):
 		manifestSplit = manifest.split("\n")
@@ -29,10 +38,11 @@ class createSniffer(Module, common.PackageManager, common.Assets):
 		
 		for line in manifestSplit:
 			
-			if(line == "<intent-filter>"):
+			#open intent filter could contain a label which we cannot replicate
+			if("<intent-filter" in line):
 				startWriting = 1
 				open_count=open_count + 1
-				outputfile.write(line + "\n")
+				outputfile.write("<intent-filter>" + "\n")
 				
 			elif(line == "</intent-filter>"):
 				
