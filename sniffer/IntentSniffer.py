@@ -13,22 +13,21 @@ class createSniffer(Module, common.PackageManager, common.Assets):
 	
 	def execute(self, arguments):
 		global outputfile 
-		os.system("mkdir ~/Desktop/snifferApp")
-		os.system("cp ~/mobile-sec/drozer/sniffer/template -r * ~/Desktop/snifferApp/")
-		outputfile = open("/home/josh-cmu/Desktop/snifferApp/AndroidManifest.xml","a")
-		self.stdout.write("Hello from Drozer\n")
+		os.system("echo Scanning...this can take up to a couple of minutes. Be patient!")
+		os.system("mkdir /usr/local/lib/python2.7/dist-packages/drozer/modules/tools/snifferApp")
+		os.system("cp /usr/local/lib/python2.7/dist-packages/drozer/modules/tools/template/* -r /usr/local/lib/python2.7/dist-packages/drozer/modules/tools/snifferApp/")
+		outputfile = open("/usr/local/lib/python2.7/dist-packages/drozer/modules/tools/snifferApp/AndroidManifest.xml","a")
 		for package in self.packageManager().getPackages():
 			packageNameString = package.applicationInfo.packageName
-			self.stdout.write("Package: %s\n" % package.applicationInfo.packageName)
-			
+			#self.stdout.write(".")
 			if(package.applicationInfo.packageName != "com.android.musicfx"):
 				self.parse(self.getAndroidManifest(packageNameString))
 		outputfile.write("</receiver> \n </application> \n </manifest>")
 		outputfile.close()
-		os.system("android update project --target 2 --path /home/josh-cmu/Desktop/snifferApp --name ContentSniffer")
-		os.chdir("/home/josh-cmu/Desktop/snifferApp")
+		os.system("android update project --target 2 --path /usr/local/lib/python2.7/dist-packages/drozer/modules/tools/snifferApp --name ContentSniffer")
+		os.chdir("/usr/local/lib/python2.7/dist-packages/drozer/modules/tools/snifferApp")
 		os.system("ant debug install")
-		os.system("rm -r /home/josh-cmu/Desktop/snifferApp")
+		os.system("rm -r /usr/local/lib/python2.7/dist-packages/drozer/modules/tools/snifferApp")
 		
 	def parse(self, manifest):
 		manifestSplit = manifest.split("\n")
