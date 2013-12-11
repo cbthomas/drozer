@@ -4,6 +4,7 @@ from drozer.modules.common import loader
 import random
 from subprocess import Popen, PIPE
 import os
+import sys
 import time
 
 
@@ -42,13 +43,13 @@ com.google.android.apps.plus.NEW_PICTURE
         '''
 
 class IntentFuzzer (Module, common.ServiceBinding, common.Provider, common.TableFormatter):
-    name="lol-name"
+    name="requires createsniffer. queries the content provider to fuzz broadcast intents"
     description="lol-description"
     examples="lol-examples"
     author="joe"
     date="Oct 2013"
     license="none"
-    path=["tools"]
+    path=["cmu"]
     permissions=[]
     
     #Message commands (outgoing what)
@@ -85,6 +86,8 @@ class IntentFuzzer (Module, common.ServiceBinding, common.Provider, common.Table
     FSERV_KEY_TARGPKG = "ipc_target_package"
     FSERV_KEY_TARGCMP = "ipc_target_component"
 
+    RESULTS_DIR = './results'
+
     def add_arguments(self, parser):
         #android.Intent.addArgumentsTo(parser)
         parser.add_argument("--seed", help="specify integer seed (default is rand int[1,2000] )")
@@ -100,6 +103,8 @@ class IntentFuzzer (Module, common.ServiceBinding, common.Provider, common.Table
 
     def execute(self, arguments):
             
+        if not os.path.exists(self.RESULTS_DIR):
+            os.makedirs(self.RESULTS_DIR)
         if arguments.null:
             self.do_null_fuzz()
         else:
@@ -149,7 +154,7 @@ class IntentFuzzer (Module, common.ServiceBinding, common.Provider, common.Table
         
         (mut_params, echo, query_start, query_end) = self.do_parse_params(arguments)
         
-        saveFile = './intent_payloads.txt'        
+        saveFile = os.path.join(self.RESULTS_DIR, 'intent_payloads.txt')
 
         if arguments.load_payloads:
             payloads = []
@@ -180,20 +185,20 @@ class IntentFuzzer (Module, common.ServiceBinding, common.Provider, common.Table
         '''
         print 'fuzzing %s intents' % (str(len(payloads)))
         results = []
-        Popen(['adb', 'logcat', '-c'])
         for payload in payloads:
-            log_proc = Popen(['adb', 'logcat'], stdout=PIPE)
-            fatal_proc = Popen(['grep','-n','-i','-A','2','exception'], stdin=log_proc.stdout, stderr=PIPE, stdout=PIPE)
-            res = self.do_fuzz_intent(payload, mut_params)
-            time.sleep(10)
-            log_proc.kill()
-            Popen(['adb', 'logcat', '-c'])
-            fatal_proc.kill()
-            (out, err) = fatal_proc.communicate()
-            print str(out), '\n'
-            results += res
-            #print '\n'.join(res)
-        #stdout, stderr = process.communicate()
+            action = payload[1].split(';')[2]
+            actionFile = ('%s.txt' % action)
+            actionFile = os.path.join(self.RESULTS_DIR, actionFile)
+            with open(actionFile, 'w+') as fd:
+                print 'opening', actionFile
+                Popen(['adb', 'logcat', '-c'])
+                log_proc = Popen(['adb', 'logcat'], stdout=fd)
+                res = self.do_fuzz_intent(payload, mut_params)
+                results += res
+                raw_input('hit a key to stop logging and move to next seed')
+                log_proc.kill()
+                fd.close()
+                print ('closing %s\n' % actionFile)
         return
 
     def do_null_fuzz(self):
@@ -205,7 +210,12 @@ class IntentFuzzer (Module, common.ServiceBinding, common.Provider, common.Table
         arg_cmp = "com.mobilesec.mutator.MutatorService"
         
         binder = self.getBinding(arg_pkg, arg_cmp)
-        result = binder.send_message(default_msg, mut_timeout)
+        with open('null_logs.txt', 'w+') as fd:
+            Popen(['adb', 'logcat', '-c'])
+            log_proc = Popen(['adb', 'logcat'], stdout=fd)
+            result = binder.send_message(default_msg, mut_timeout)
+            time.sleep(10)
+            fd.close()
 
         if result:
             try:
@@ -234,7 +244,7 @@ class IntentFuzzer (Module, common.ServiceBinding, common.Provider, common.Table
         else:
             random.seed()
             seed = random.randint(1, 2000)
-        print '\n' + results[0]
+        print results[0]
         #print payload[1].split(';')[2]
         arg_pkg = "com.mobilesec.mutator"
         arg_cmp = "com.mobilesec.mutator.MutatorService"
@@ -243,6 +253,7 @@ class IntentFuzzer (Module, common.ServiceBinding, common.Provider, common.Table
         binder = self.getBinding(arg_pkg, arg_cmp)
         while 1:
             try:
+                print 'attempt',cnt
                 #print '\t' + str(cnt)
                 mut_seed = cnt + seed
                 mut_params['mut_seed'] = mut_seed
@@ -290,11 +301,9 @@ class IntentFuzzer (Module, common.ServiceBinding, common.Provider, common.Table
                 #self.stdout.write("  arg2: %d\n" % int(response_message.arg2))
                 
                 #print extras
-                '''
                 for n in response_bundle.split('\n'):
                     if n.startswith('  ') and 'FUZZ_INTENT' not in n:
                         self.stdout.write("  %s\n"%n)
-                '''
                 return ('OK')
             except Exception as e:
                 print ("Exception (%s)%s" % (type(e), e))

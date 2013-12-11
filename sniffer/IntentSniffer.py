@@ -9,7 +9,7 @@ class createSniffer(Module, common.PackageManager, common.Assets):
 	author=""
 	date=""
 	license=""
-	path=[]
+	path=['cmu']
 	
 	def execute(self, arguments):
 		global outputfile 
